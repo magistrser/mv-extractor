@@ -13,6 +13,7 @@ VideoCap::VideoCap() {
     this->frame_number = 0;
     this->frame_timestamp = 0.0;
     this->is_rtsp = false;
+    this->interrupt_timout_handler = NULL;
 
     memset(&(this->rgb_frame), 0, sizeof(this->rgb_frame));
     memset(&(this->picture), 0, sizeof(this->picture));
@@ -58,12 +59,17 @@ void VideoCap::release(void) {
     memset(&packet, 0, sizeof(packet));
     av_init_packet(&packet);
 
+    if (this->interrupt_timout_handler) {
+        delete this->interrupt_timout_handler;
+    }
+
     this->codec = NULL;
     this->video_stream = NULL;
     this->video_stream_idx = -1;
     this->frame_number = 0;
     this->frame_timestamp = 0.0;
     this->is_rtsp = false;
+    this->interrupt_timout_handler = NULL;
 }
 
 
@@ -81,11 +87,17 @@ bool VideoCap::open(const char *url) {
 
     this->url = url;
 
+    this->fmt_ctx = avformat_alloc_context();
+    this->interrupt_timout_handler = new InterruptTimoutHandler(5); // 5s
+    fmt_ctx->interrupt_callback.callback = InterruptTimoutHandler::interrupt_callback;
+    fmt_ctx->interrupt_callback.opaque = (void*)this->interrupt_timout_handler;
+
     // open RTSP stream with TCP
     av_dict_set(&(this->opts), "rtsp_transport", "tcp", 0);
     av_dict_set(&(this->opts), "stimeout", "5000000", 0); // set timeout to 5 seconds
     if (avformat_open_input(&(this->fmt_ctx), url, NULL, &(this->opts)) < 0)
         goto error;
+
 
     // determine if opened stream is RTSP or not (e.g. a video file)
     this->is_rtsp = check_format_rtsp(this->fmt_ctx->iformat->name);
@@ -181,6 +193,7 @@ bool VideoCap::grab(void) {
         av_packet_unref(&(this->packet));
 
         // read next packet from the stream
+        this->interrupt_timout_handler->reset();
         int ret = av_read_frame(this->fmt_ctx, &(this->packet));
 
         if (ret == AVERROR(EAGAIN))

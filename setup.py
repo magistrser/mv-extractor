@@ -8,6 +8,7 @@ d = pkgconfig.parse('libavformat libswscale opencv4')
 print("Numpy dir: ", np.get_include())
 
 mvextractor = Extension('mvextractor.videocap',
+       define_macros = [('DEBUG', '1')],
        include_dirs = [
               *d['include_dirs'],
               np.get_include()

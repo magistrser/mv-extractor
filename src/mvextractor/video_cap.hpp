@@ -13,6 +13,7 @@ extern "C" {
 }
 
 #include "time_cvt.hpp"
+#include "interrupt_timout_handler.hpp"
 
 
 // for changing the dtype of motion vector
@@ -69,6 +70,7 @@ private:
     int64_t frame_number;
     double frame_timestamp;
     bool is_rtsp;
+    InterruptTimoutHandler *interrupt_timout_handler;
 #if USE_AV_INTERRUPT_CALLBACK
     AVInterruptCallbackMetadata interrupt_metadata;
 #endif
