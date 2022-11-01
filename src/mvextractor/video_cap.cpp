@@ -248,7 +248,7 @@ bool VideoCap::grab(void) {
 }
 
 
-bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp) {
+bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, double *frame_timestamp) {
 
     if (!this->video_stream || !(this->frame->data[0]))
         return false;
@@ -306,36 +306,6 @@ bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int
     *step = this->picture.step;
     *cn = this->picture.cn;
 
-    // get motion vectors
-    AVFrameSideData *sd = av_frame_get_side_data(this->frame, AV_FRAME_DATA_MOTION_VECTORS);
-    if (sd) {
-        AVMotionVector *mvs = (AVMotionVector *)sd->data;
-
-        *num_mvs = sd->size / sizeof(*mvs);
-
-        if (*num_mvs > 0) {
-
-            // allocate memory for motion vectors as 1D array
-            if (!(*motion_vectors = (MVS_DTYPE *) malloc(*num_mvs * 10 * sizeof(MVS_DTYPE))))
-                return false;
-
-            // store the motion vectors in the allocated memory (C contiguous)
-            for (MVS_DTYPE i = 0; i < *num_mvs; ++i) {
-                *(*motion_vectors + i*10     ) = static_cast<MVS_DTYPE>(mvs[i].source);
-                *(*motion_vectors + i*10 +  1) = static_cast<MVS_DTYPE>(mvs[i].w);
-                *(*motion_vectors + i*10 +  2) = static_cast<MVS_DTYPE>(mvs[i].h);
-                *(*motion_vectors + i*10 +  3) = static_cast<MVS_DTYPE>(mvs[i].src_x);
-                *(*motion_vectors + i*10 +  4) = static_cast<MVS_DTYPE>(mvs[i].src_y);
-                *(*motion_vectors + i*10 +  5) = static_cast<MVS_DTYPE>(mvs[i].dst_x);
-                *(*motion_vectors + i*10 +  6) = static_cast<MVS_DTYPE>(mvs[i].dst_y);
-                *(*motion_vectors + i*10 +  7) = static_cast<MVS_DTYPE>(mvs[i].motion_x);
-                *(*motion_vectors + i*10 +  8) = static_cast<MVS_DTYPE>(mvs[i].motion_y);
-                *(*motion_vectors + i*10 +  9) = static_cast<MVS_DTYPE>(mvs[i].motion_scale);
-                //*(*motion_vectors + i*11 + 10) = static_cast<MVS_DTYPE>(mvs[i].flags);
-            }
-        }
-    }
-
     // get frame type (I, P, B, etc.) and create a null terminated c-string
     frame_type[0] = av_get_picture_type_char(this->frame->pict_type);
     frame_type[1] = '\0';
@@ -347,10 +317,10 @@ bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int
 }
 
 
-bool VideoCap::read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp) {
+bool VideoCap::read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, double *frame_timestamp) {
     bool ret = this->grab();
     if (ret)
-        ret = this->retrieve(frame, step, width, height, cn, frame_type, motion_vectors, num_mvs, frame_timestamp);
+        ret = this->retrieve(frame, step, width, height, cn, frame_type, frame_timestamp);
     return ret;
 }
 

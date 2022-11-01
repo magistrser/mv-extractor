@@ -55,16 +55,13 @@ VideoCap_retrieve(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     int step = 0;
     int cn = 0;
 
-    MVS_DTYPE *motion_vectors = NULL;
-    MVS_DTYPE num_mvs = 0;
     char frame_type[2] = "?";
 
     double frame_timestamp = 0;
 
     PyObject *ret = Py_True;
 
-    if (!self->vcap.retrieve(&frame, &step, &width, &height, &cn, frame_type, &motion_vectors, &num_mvs, &frame_timestamp)) {
-        num_mvs = 0;
+    if (!self->vcap.retrieve(&frame, &step, &width, &height, &cn, frame_type, &frame_timestamp)) {
         width = 0;
         height = 0;
         step = 0;
@@ -80,12 +77,7 @@ VideoCap_retrieve(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     NDArrayConverter cvt;
     PyObject* frame_nd = cvt.toNDArray(frame_cv);
 
-    // convert motion vector buffer into numpy array
-    npy_intp dims_mvs[2] = {(npy_intp)num_mvs, 10};
-    PyObject *motion_vectors_nd = PyArray_SimpleNewFromData(2, dims_mvs, MVS_DTYPE_NP, motion_vectors);
-    PyArray_ENABLEFLAGS((PyArrayObject*)motion_vectors_nd, NPY_ARRAY_OWNDATA);
-
-    return Py_BuildValue("(ONNsd)", ret, frame_nd, motion_vectors_nd, (const char*)frame_type, frame_timestamp);
+    return Py_BuildValue("(ONNsd)", ret, frame_nd, (const char*)frame_type, frame_timestamp);
 }
 
 
@@ -99,16 +91,13 @@ VideoCap_read(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     int step = 0;
     int cn = 0;
 
-    MVS_DTYPE *motion_vectors = NULL;
-    MVS_DTYPE num_mvs = 0;
     char frame_type[2] = "?";
 
     double frame_timestamp = 0;
 
     PyObject *ret = Py_True;
 
-    if (!self->vcap.read(&frame, &step, &width, &height, &cn, frame_type, &motion_vectors, &num_mvs, &frame_timestamp)) {
-        num_mvs = 0;
+    if (!self->vcap.read(&frame, &step, &width, &height, &cn, frame_type, &frame_timestamp)) {
         width = 0;
         height = 0;
         step = 0;
@@ -124,12 +113,7 @@ VideoCap_read(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     NDArrayConverter cvt;
     PyObject* frame_nd = cvt.toNDArray(frame_cv);
 
-    // convert motion vector buffer into numpy array
-    npy_intp dims_mvs[2] = {(npy_intp)num_mvs, 10};
-    PyObject *motion_vectors_nd = PyArray_SimpleNewFromData(2, dims_mvs, MVS_DTYPE_NP, motion_vectors);
-    PyArray_ENABLEFLAGS((PyArrayObject*)motion_vectors_nd, NPY_ARRAY_OWNDATA);
-
-    return Py_BuildValue("(ONNsd)", ret, frame_nd, motion_vectors_nd, (const char*)frame_type, frame_timestamp);
+    return Py_BuildValue("(ONNsd)", ret, frame_nd, (const char*)frame_type, frame_timestamp);
 }
 
 
