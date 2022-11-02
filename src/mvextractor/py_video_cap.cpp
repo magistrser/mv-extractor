@@ -77,7 +77,7 @@ VideoCap_retrieve(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     NDArrayConverter cvt;
     PyObject* frame_nd = cvt.toNDArray(frame_cv);
 
-    return Py_BuildValue("(ONNsd)", ret, frame_nd, (const char*)frame_type, frame_timestamp);
+    return Py_BuildValue("(ONsd)", ret, frame_nd, (const char*)frame_type, frame_timestamp);
 }
 
 
@@ -113,7 +113,7 @@ VideoCap_read(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     NDArrayConverter cvt;
     PyObject* frame_nd = cvt.toNDArray(frame_cv);
 
-    return Py_BuildValue("(ONNsd)", ret, frame_nd, (const char*)frame_type, frame_timestamp);
+    return Py_BuildValue("(ONsd)", ret, frame_nd, (const char*)frame_type, frame_timestamp);
 }
 
 
