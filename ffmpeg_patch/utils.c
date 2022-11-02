@@ -543,12 +543,6 @@ int avformat_open_input(AVFormatContext **ps, const char *filename,
     AVDictionary *tmp = NULL;
     ID3v2ExtraMeta *id3v2_extra_meta = NULL;
 
-    if (!s && !(s = avformat_alloc_context()))
-        return AVERROR(ENOMEM);
-    if (!s->av_class) {
-        av_log(NULL, AV_LOG_ERROR, "Input context has not been properly allocated by avformat_alloc_context() and is not NULL either\n");
-        return AVERROR(EINVAL);
-    }
     if (fmt)
         s->iformat = fmt;
 

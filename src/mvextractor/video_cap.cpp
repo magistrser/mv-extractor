@@ -1,6 +1,5 @@
 #include "video_cap.hpp"
 
-
 VideoCap::VideoCap() {
     this->opts = NULL;
     this->codec = NULL;
@@ -13,6 +12,7 @@ VideoCap::VideoCap() {
     this->frame_number = 0;
     this->frame_timestamp = 0.0;
     this->is_rtsp = false;
+    this->interrupt_timout_handler = NULL;
 
     memset(&(this->rgb_frame), 0, sizeof(this->rgb_frame));
     memset(&(this->picture), 0, sizeof(this->picture));
@@ -58,12 +58,17 @@ void VideoCap::release(void) {
     memset(&packet, 0, sizeof(packet));
     av_init_packet(&packet);
 
+    if (this->interrupt_timout_handler) {
+        delete this->interrupt_timout_handler;
+    }
+
     this->codec = NULL;
     this->video_stream = NULL;
     this->video_stream_idx = -1;
     this->frame_number = 0;
     this->frame_timestamp = 0.0;
     this->is_rtsp = false;
+    this->interrupt_timout_handler = NULL;
 }
 
 
@@ -81,11 +86,24 @@ bool VideoCap::open(const char *url) {
 
     this->url = url;
 
+    this->fmt_ctx = avformat_alloc_context();
+    if (!this->fmt_ctx)
+        goto error;
+    if (!this->fmt_ctx->av_class) {
+        av_log(NULL, AV_LOG_ERROR, "Input context has not been properly allocated by avformat_alloc_context() and is not NULL either\n");
+        goto error;
+    }
+
+    this->interrupt_timout_handler = new InterruptTimoutHandler(5000); // 5s
+    fmt_ctx->interrupt_callback.callback = InterruptTimoutHandler::interrupt_callback;
+    fmt_ctx->interrupt_callback.opaque = (void*)this->interrupt_timout_handler;
+
     // open RTSP stream with TCP
     av_dict_set(&(this->opts), "rtsp_transport", "tcp", 0);
     av_dict_set(&(this->opts), "stimeout", "5000000", 0); // set timeout to 5 seconds
     if (avformat_open_input(&(this->fmt_ctx), url, NULL, &(this->opts)) < 0)
         goto error;
+
 
     // determine if opened stream is RTSP or not (e.g. a video file)
     this->is_rtsp = check_format_rtsp(this->fmt_ctx->iformat->name);
@@ -178,10 +196,14 @@ bool VideoCap::grab(void) {
 
     // loop over different streams (video, audio) in the file
     while(!valid) {
+        this->interrupt_timout_handler->reset();
         av_packet_unref(&(this->packet));
 
         // read next packet from the stream
         int ret = av_read_frame(this->fmt_ctx, &(this->packet));
+        if (ret == AVERROR_EOF) {
+            return false;
+        }
 
         if (ret == AVERROR(EAGAIN))
             continue;
@@ -248,7 +270,7 @@ bool VideoCap::grab(void) {
 }
 
 
-bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp) {
+bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, double *frame_timestamp) {
 
     if (!this->video_stream || !(this->frame->data[0]))
         return false;
@@ -306,36 +328,6 @@ bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int
     *step = this->picture.step;
     *cn = this->picture.cn;
 
-    // get motion vectors
-    AVFrameSideData *sd = av_frame_get_side_data(this->frame, AV_FRAME_DATA_MOTION_VECTORS);
-    if (sd) {
-        AVMotionVector *mvs = (AVMotionVector *)sd->data;
-
-        *num_mvs = sd->size / sizeof(*mvs);
-
-        if (*num_mvs > 0) {
-
-            // allocate memory for motion vectors as 1D array
-            if (!(*motion_vectors = (MVS_DTYPE *) malloc(*num_mvs * 10 * sizeof(MVS_DTYPE))))
-                return false;
-
-            // store the motion vectors in the allocated memory (C contiguous)
-            for (MVS_DTYPE i = 0; i < *num_mvs; ++i) {
-                *(*motion_vectors + i*10     ) = static_cast<MVS_DTYPE>(mvs[i].source);
-                *(*motion_vectors + i*10 +  1) = static_cast<MVS_DTYPE>(mvs[i].w);
-                *(*motion_vectors + i*10 +  2) = static_cast<MVS_DTYPE>(mvs[i].h);
-                *(*motion_vectors + i*10 +  3) = static_cast<MVS_DTYPE>(mvs[i].src_x);
-                *(*motion_vectors + i*10 +  4) = static_cast<MVS_DTYPE>(mvs[i].src_y);
-                *(*motion_vectors + i*10 +  5) = static_cast<MVS_DTYPE>(mvs[i].dst_x);
-                *(*motion_vectors + i*10 +  6) = static_cast<MVS_DTYPE>(mvs[i].dst_y);
-                *(*motion_vectors + i*10 +  7) = static_cast<MVS_DTYPE>(mvs[i].motion_x);
-                *(*motion_vectors + i*10 +  8) = static_cast<MVS_DTYPE>(mvs[i].motion_y);
-                *(*motion_vectors + i*10 +  9) = static_cast<MVS_DTYPE>(mvs[i].motion_scale);
-                //*(*motion_vectors + i*11 + 10) = static_cast<MVS_DTYPE>(mvs[i].flags);
-            }
-        }
-    }
-
     // get frame type (I, P, B, etc.) and create a null terminated c-string
     frame_type[0] = av_get_picture_type_char(this->frame->pict_type);
     frame_type[1] = '\0';
@@ -347,10 +339,10 @@ bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int
 }
 
 
-bool VideoCap::read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp) {
+bool VideoCap::read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, double *frame_timestamp) {
     bool ret = this->grab();
     if (ret)
-        ret = this->retrieve(frame, step, width, height, cn, frame_type, motion_vectors, num_mvs, frame_timestamp);
+        ret = this->retrieve(frame, step, width, height, cn, frame_type, frame_timestamp);
     return ret;
 }
 
