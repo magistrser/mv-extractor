@@ -1,8 +1,5 @@
 #include "video_cap.hpp"
 
-#include <iostream>
-
-
 VideoCap::VideoCap() {
     this->opts = NULL;
     this->codec = NULL;
@@ -188,9 +185,6 @@ bool VideoCap::grab(void) {
     int count_errs = 0;
     const int max_number_of_attempts = 512;
 
-    int read_frame_errs = 0;
-    const int max_number_of_attempts_to_read_frame = 5;
-
     // make sure file is opened
     if (!this->fmt_ctx || !this->video_stream)
         return false;
@@ -207,10 +201,7 @@ bool VideoCap::grab(void) {
 
         // read next packet from the stream
         int ret = av_read_frame(this->fmt_ctx, &(this->packet));
-        std::cout << "[DEBUG] av_read_frame, ret: " << ret << std::endl;
-        std::cout << "[DEBUG] count_errs: " << count_errs << std::endl;
         if (ret == AVERROR_EOF) {
-            std::cout << "[DEBUG] AVERROR_EOF" << std::endl;
             return false;
         }
 
