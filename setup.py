@@ -16,6 +16,7 @@ mvextractor = Extension('mvextractor.videocap',
        library_dirs = d['library_dirs'],
        libraries = d['libraries'],
        sources = [
+              'src/mvextractor/interrupt_timout_handler.cpp',
               'src/mvextractor/py_video_cap.cpp',
               'src/mvextractor/video_cap.cpp',
               'src/mvextractor/time_cvt.cpp',

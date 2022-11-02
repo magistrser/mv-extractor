@@ -59,45 +59,30 @@ class TestMotionVectorExtraction(unittest.TestCase):
     def test_read_not_opened_cap(self):
         ret = self.cap.open("vid_not_existent.mp4")
         assert ret == False
-        ret, frame, motion_vectors, frame_type, timestamp = self.cap.read()
+        ret, frame, frame_type, timestamp = self.cap.read()
         assert frame_type == "?"
         assert timestamp == 0.0
         assert ret == False
         assert frame == None
-        validate_motion_vectors(motion_vectors)
 
 
     def test_read_first_I_frame(self):
         self.open_video()
-        ret, frame, motion_vectors, frame_type, timestamp = self.cap.read()
+        ret, frame, frame_type, timestamp = self.cap.read()
         assert ret == True
         assert frame_type == "I"
         validate_timestamp(timestamp)        
         validate_frame(frame)
-        validate_motion_vectors(motion_vectors)
 
 
     def test_read_first_P_frame(self):
         self.open_video()
         self.cap.read()  # skip first frame (I frame)
-        ret, frame, motion_vectors, frame_type, timestamp = self.cap.read()
+        ret, frame, frame_type, timestamp = self.cap.read()
         assert ret == True
         assert frame_type == "P"
         validate_timestamp(timestamp)        
         validate_frame(frame)
-        validate_motion_vectors(motion_vectors, shape=(3665, 10))
-        assert np.all(motion_vectors[:10, :] == np.array([
-            [-1, 16, 16,   8, 8,   8, 8, 0, 0, 4],
-            [-1, 16, 16,  24, 8,  24, 8, 0, 0, 4],
-            [-1, 16, 16,  40, 8,  40, 8, 0, 0, 4],
-            [-1, 16, 16,  56, 8,  56, 8, 0, 0, 4],
-            [-1, 16, 16,  72, 8,  72, 8, 0, 0, 4],
-            [-1, 16, 16,  88, 8,  88, 8, 0, 0, 4],
-            [-1, 16, 16, 104, 8, 104, 8, 0, 0, 4],
-            [-1, 16, 16, 120, 8, 120, 8, 0, 0, 4],
-            [-1, 16, 16, 136, 8, 136, 8, 0, 0, 4],
-            [-1, 16, 16, 152, 8, 152, 8, 0, 0, 4],
-        ]))
 
 
     def test_read_first_ten_frames(self):
@@ -108,10 +93,9 @@ class TestMotionVectorExtraction(unittest.TestCase):
         timestamps = []
         self.open_video()
         for _ in range(10):
-            ret, frame, motion_vector, frame_type, timestamp = self.cap.read()
+            ret, frame, frame_type, timestamp = self.cap.read()
             rets.append(ret)
             frames.append(frame)
-            motion_vectors.append(motion_vector)
             frame_types.append(frame_type)
             timestamps.append(timestamp)
 
@@ -123,14 +107,13 @@ class TestMotionVectorExtraction(unittest.TestCase):
             (0, 10), (3665, 10), (3696, 10), (3722, 10), (3807, 10), 
             (3953, 10), (4155, 10), (3617, 10), (4115, 10), (4192, 10)
         ]
-        [validate_motion_vectors(motion_vector, shape) for motion_vector, shape in zip(motion_vectors, shapes)]
 
 
     def test_frame_count(self):
         self.open_video()
         frame_count = 0
         while True:
-            ret, _, _, _, _ = self.cap.read()
+            ret, _, _, _ = self.cap.read()
             if not ret:
                 break
             frame_count += 1
@@ -142,7 +125,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
         times = []
         while True:
             tstart = time.perf_counter()
-            ret, _, _, _, _ = self.cap.read()
+            ret, _, _, _ = self.cap.read()
             if not ret:
                 break
             tend = time.perf_counter()

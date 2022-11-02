@@ -88,7 +88,14 @@ bool VideoCap::open(const char *url) {
     this->url = url;
 
     this->fmt_ctx = avformat_alloc_context();
-    this->interrupt_timout_handler = new InterruptTimoutHandler(5); // 5s
+    if (!this->fmt_ctx)
+        goto error;
+    if (!this->fmt_ctx->av_class) {
+        av_log(NULL, AV_LOG_ERROR, "Input context has not been properly allocated by avformat_alloc_context() and is not NULL either\n");
+        goto error;
+    }
+
+    this->interrupt_timout_handler = new InterruptTimoutHandler(50); // 5ms
     fmt_ctx->interrupt_callback.callback = InterruptTimoutHandler::interrupt_callback;
     fmt_ctx->interrupt_callback.opaque = (void*)this->interrupt_timout_handler;
 
