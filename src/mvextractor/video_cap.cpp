@@ -1,5 +1,7 @@
 #include "video_cap.hpp"
 
+#include <iostream>
+
 
 VideoCap::VideoCap() {
     this->opts = NULL;
@@ -95,7 +97,7 @@ bool VideoCap::open(const char *url) {
         goto error;
     }
 
-    this->interrupt_timout_handler = new InterruptTimoutHandler(50); // 5ms
+    this->interrupt_timout_handler = new InterruptTimoutHandler(5000); // 5s
     fmt_ctx->interrupt_callback.callback = InterruptTimoutHandler::interrupt_callback;
     fmt_ctx->interrupt_callback.opaque = (void*)this->interrupt_timout_handler;
 
@@ -186,6 +188,9 @@ bool VideoCap::grab(void) {
     int count_errs = 0;
     const int max_number_of_attempts = 512;
 
+    int read_frame_errs = 0;
+    const int max_number_of_attempts_to_read_frame = 5;
+
     // make sure file is opened
     if (!this->fmt_ctx || !this->video_stream)
         return false;
@@ -197,11 +202,17 @@ bool VideoCap::grab(void) {
 
     // loop over different streams (video, audio) in the file
     while(!valid) {
+        this->interrupt_timout_handler->reset();
         av_packet_unref(&(this->packet));
 
         // read next packet from the stream
-        this->interrupt_timout_handler->reset();
         int ret = av_read_frame(this->fmt_ctx, &(this->packet));
+        std::cout << "[DEBUG] av_read_frame, ret: " << ret << std::endl;
+        std::cout << "[DEBUG] count_errs: " << count_errs << std::endl;
+        if (ret == AVERROR_EOF) {
+            std::cout << "[DEBUG] AVERROR_EOF" << std::endl;
+            return false;
+        }
 
         if (ret == AVERROR(EAGAIN))
             continue;
