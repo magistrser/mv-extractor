@@ -28,9 +28,10 @@ jobs:
         with:
           context: .
           push: true
-          tags: lubo1994/mv-extractor:dev
-          cache-from: type=registry,ref=lubo1994/mv-extractor:buildcache
-          cache-to: type=registry,ref=lubo1994/mv-extractor:buildcache,mode=max
+          platforms: linux/amd64,linux/arm64
+          tags: SneakyBerry/mv-extractor:dev
+          cache-from: type=registry,ref=SneakyBerry/mv-extractor:buildcache
+          cache-to: type=registry,ref=SneakyBerry/mv-extractor:buildcache,mode=max
 
   build_wheels:
     name: Build wheels for cp${{ matrix.python }}-${{ matrix.platform_id }}
@@ -41,16 +42,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - os: ubuntu-latest
-          python: 38
-          bitness: 64
-          platform_id: manylinux_x86_64
-          manylinux_image: lubo1994/mv-extractor:dev
-        - os: ubuntu-latest
-          python: 39
-          bitness: 64
-          platform_id: manylinux_x86_64
-          manylinux_image: lubo1994/mv-extractor:dev
         - os: ubuntu-latest
           python: 310
           bitness: 64
@@ -75,6 +66,6 @@ jobs:
           CIBW_TEST_COMMAND: VIDEO_URL={project}/vid_h264.mp4 python3 {project}/tests/tests.py
           CIBW_BUILD_VERBOSITY: 1
 
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
+#      - uses: actions/upload-artifact@v3
+#        with:
+#          path: ./wheelhouse/*.whl
