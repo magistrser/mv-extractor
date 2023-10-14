@@ -69,7 +69,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.8.1
         env:
           CIBW_PLATFORM: linux
-          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}_*
           # Disable building PyPy wheels on all platforms
           CIBW_SKIP: pp*
           CIBW_ARCHS: x86_64,aarch64
