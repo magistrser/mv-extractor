@@ -33,6 +33,7 @@ RUN git clone https://github.com/opencv/opencv.git --branch 4.5.5 --depth 1 && \
     -D OPENCV_GENERATE_PKGCONFIG=YES  \
     -D OPENCV_ENABLE_NONFREE=OFF \
     -D BUILD_SHARED_LIBS=OFF \
+    -D WITH_ITT=OFF \
     LD_LIST=core,imgproc  \
     .. && \
     make -j$(nproc) && \
