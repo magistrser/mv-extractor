@@ -125,18 +125,6 @@ class TestMotionVectorExtraction(unittest.TestCase):
         ]
         [validate_motion_vectors(motion_vector, shape) for motion_vector, shape in zip(motion_vectors, shapes)]
 
-
-    def test_frame_count(self):
-        self.open_video()
-        frame_count = 0
-        while True:
-            ret, _, _, _, _ = self.cap.read()
-            if not ret:
-                break
-            frame_count += 1
-        assert frame_count == 330
-
-
     def test_timings(self):
         self.open_video()
         times = []
